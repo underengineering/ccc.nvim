@@ -1,18 +1,22 @@
 local utils = require("ccc.utils")
 local hex = require("ccc.utils.hex")
 
+---@class ccc.HighlightCache
+---@field hl_ns_id integer
+---@field hl_name_cache table<string, boolean>
 local M = {
+  hl_ns_id = vim.api.nvim_create_namespace("ccc-highlight"),
   hl_name_cache = {},
 }
 
-function M.reset()
-  M.hl_name_cache = {}
+function M:init()
+  vim.api.nvim_set_hl_ns(self.hl_ns_id)
 end
 
 ---@param rgb? RGB
 ---@param hl_def? vim.api.keyset.highlight
 ---@return string hl_name
-function M.ensure_hl_name(rgb, hl_def)
+function M:ensure_hl_name(rgb, hl_def)
   local hl_name = "CccHighlighter"
   if hl_def then
     hl_name = hl_name
@@ -32,10 +36,11 @@ function M.ensure_hl_name(rgb, hl_def)
     return ""
   end
 
-  if not M.hl_name_cache[hl_name] then
-    vim.api.nvim_set_hl(0, hl_name, hl_def)
-    M.hl_name_cache[hl_name] = true
+  if not self.hl_name_cache[hl_name] then
+    vim.api.nvim_set_hl(self.hl_ns_id, hl_name, hl_def)
+    self.hl_name_cache[hl_name] = true
   end
+
   return hl_name
 end
 
