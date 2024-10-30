@@ -1,6 +1,6 @@
 local utils = require("ccc.utils")
 local api = require("ccc.utils.api")
-local hl = require("ccc.handler.highlight")
+local hl_cache = require("ccc.handler.highlight")
 
 ---@class ccc.LspHandlerCacheEntry
 ---@field range lsp.Range
@@ -26,7 +26,12 @@ function LspHandler:enable()
   -- attach on LspAttach
   vim.api.nvim_create_autocmd("LspAttach", {
     callback = function(args)
-      self:attach(args.buf)
+      if self.buffers[args.buf] then
+        -- Already attached
+        self:request_info(args.buf, args.data.client_id)
+      else
+        self:attach(args.buf)
+      end
     end,
   })
 
@@ -46,6 +51,7 @@ function LspHandler:enable()
       local pending_request = data.active_requests[args.data.client_id]
       if pending_request then
         client.cancel_request(pending_request)
+        data.active_requests[args.data.client_id] = nil
       end
 
       -- Notify the subscriber about detaching
@@ -75,6 +81,7 @@ function LspHandler:disable()
   self.buffers = {}
 end
 
+---@private
 ---@param bufnr integer
 function LspHandler:attach(bufnr)
   bufnr = utils.ensure_bufnr(bufnr)
@@ -83,18 +90,20 @@ function LspHandler:attach(bufnr)
     return
   end
 
-  if not self.buffers[bufnr] then
-    self.buffers[bufnr] = {
-      cached_info = {},
-      active_requests = {},
-      color_info_map = {},
-    }
+  if self.buffers[bufnr] then
+    return
   end
+
+  self.buffers[bufnr] = {
+    cached_info = {},
+    active_requests = {},
+    color_info_map = {},
+  }
 
   local opts = require("ccc.config").options
   vim.api.nvim_buf_attach(bufnr, false, {
     on_lines = function()
-      if not self.enabled then
+      if not self.enabled or not self.buffers[bufnr] then
         return true
       elseif not opts.highlighter.update_insert and vim.fn.mode() == "i" then
         return
@@ -118,7 +127,7 @@ local function convert_color_info(color_infos)
   for _, color_info in ipairs(color_infos) do
     local range = color_info.range
     local color = color_info.color
-    local hl_name = hl:ensure_hl_name({ color.red, color.green, color.blue })
+    local hl_name = hl_cache:ensure_hl_name({ color.red, color.green, color.blue })
     table.insert(result, {
       range = range,
       color = color,
@@ -284,12 +293,8 @@ end
 function LspHandler:subscribe(bufnr, callback)
   local data = self.buffers[bufnr]
   if not data then
-    data = {
-      cached_info = {},
-      active_requests = {},
-      color_info_map = {},
-    }
-    self.buffers[bufnr] = data
+    self:attach(bufnr)
+    data = self.buffers[bufnr]
   end
 
   -- Call with cached data
