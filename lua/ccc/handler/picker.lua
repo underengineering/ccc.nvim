@@ -1,6 +1,6 @@
 local utils = require("ccc.utils")
 local api = require("ccc.utils.api")
-local hl = require("ccc.handler.highlight")
+local hl_cache = require("ccc.handler.highlight")
 
 ---@class ccc.PickerHandler
 local PickerHandler = {}
@@ -73,7 +73,7 @@ function PickerHandler.info_in_range(bufnr, start_line, end_line, pickers)
       if (RGB or hl_def) and end_col then
         table.insert(infos, {
           range = { row, start_col - 1, row, end_col },
-          hl_name = hl:ensure_hl_name(RGB, hl_def),
+          hl_name = hl_cache:ensure_hl_name(RGB, hl_def),
         })
         init = end_col + 1
       else

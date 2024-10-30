@@ -100,6 +100,7 @@ function Highlighter:enable(bufnr)
   if self.attached_buffers[bufnr] then
     return
   end
+
   -- filetype filter for auto_enable
   local filetype = vim.api.nvim_get_option_value("filetype", { buf = bufnr })
   if not ft_filter(filetype) then
