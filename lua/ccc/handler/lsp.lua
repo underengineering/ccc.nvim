@@ -50,7 +50,7 @@ function LspHandler:enable()
       -- Cancel any pending request
       local pending_request = data.active_requests[args.data.client_id]
       if pending_request then
-        client.cancel_request(pending_request)
+        client:cancel_request(pending_request)
         data.active_requests[args.data.client_id] = nil
       end
 
@@ -163,14 +163,14 @@ function LspHandler:request_info(bufnr, client_id)
   if request_id then
     -- Cancel pending request
     requests[client_id] = nil
-    client.cancel_request(request_id)
+    client:cancel_request(request_id)
   end
 
   local method = "textDocument/documentColor"
   local param = { textDocument = vim.lsp.util.make_text_document_params() }
 
   local status = false
-  status, request_id = client.request(method, param, function(err, result)
+  status, request_id = client:request(method, param, function(err, result)
     ---@cast result ccc.kit.LSP.TextDocumentDocumentColorResponse
 
     if not self.enabled then
@@ -212,7 +212,7 @@ function LspHandler:cancel_pending_requests(bufnr)
   for client_id, request_id in pairs(data.active_requests) do
     local client = vim.lsp.get_client_by_id(client_id)
     if client then
-      client.cancel_request(request_id)
+      client:cancel_request(request_id)
     end
   end
 

@@ -17,6 +17,9 @@ function Client.new(client)
       request = function(_, ...)
         return client.request(...)
       end,
+      cancel_request = function(_, ...)
+        return client.cancel_request(...)
+      end,
     }, { __index = client })
   end
 
